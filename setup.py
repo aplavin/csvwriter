@@ -2,13 +2,13 @@ from distutils.core import setup
 
 setup(
     name='csvwriter',
-    version='0.1',
+    version='0.1.1',
     packages=['csvwriter'],
     url='https://github.com/aplavin/csvwriter',
-    license='',
+    license='MIT',
     author='Alexander Plavin',
     author_email='alexander@plav.in',
-    description='',
+    description='Simple convenience wrapper on top of csv.DictWriter.',
     classifiers=[
         'Development Status :: 4 - Beta',
         'Intended Audience :: Developers',
