@@ -1,7 +1,11 @@
 from csvwriter import DictWriter, CsvWriter
-from io import StringIO
+try:
+    # Python 2
+    from StringIO import StringIO
+except:
+    # Python 3
+    from io import StringIO
 import csv
-import pathlib
 import pytest
 
 
