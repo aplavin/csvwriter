@@ -68,6 +68,20 @@ def test_csvwriter_lshift():
                             {"f1": '2', "f2": '5', "f3": "xyz"}]
 
 
+def test_csvwriter_append():
+    fileobj = StringIO()
+    writer1 = CsvWriter(fileobj)
+    writer1 << [{"f1": 2, "f2": 5, "f3": "xyz"}, {"f1": 1, "f2": "abc", "f3": "f"}]
+
+    writer2 = CsvWriter(fileobj)
+    writer2 << {"f1": 2, "f2": 5, "f3": "xyz"}
+
+    reader = csv.DictReader(StringIO(fileobj.getvalue()))
+    assert list(reader) == [{"f1": '2', "f2": '5', "f3": "xyz"},
+                            {"f1": '1', "f2": "abc", "f3": "f"},
+                            {"f1": '2', "f2": '5', "f3": "xyz"}]
+
+
 def test_csvwriter_doesnt_close():
     fileobj = StringIO()
     writer = CsvWriter(fileobj)

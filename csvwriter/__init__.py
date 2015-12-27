@@ -5,7 +5,7 @@ import itertools
 
 class DictWriter(csv.DictWriter):
     @classmethod
-    def append(cls, f, fieldnames=None, **kwargs):
+    def append(cls, f, fieldnames=None, writeheader=False, **kwargs):
         curpos = f.tell()
         if curpos > 0:
             f.seek(0)
@@ -14,7 +14,10 @@ class DictWriter(csv.DictWriter):
             f.seek(curpos)
         elif fieldnames is None:
             raise ValueError("Can't append to an empty file.")
-        return cls(f, fieldnames, **kwargs)
+        inst = cls(f, fieldnames, **kwargs)
+        if curpos == 0 and writeheader:
+            inst.writeheader()
+        return inst
 
 
 class CsvWriter:
@@ -25,8 +28,7 @@ class CsvWriter:
 
     def writerow(self, row):
         if self.writer is None:
-            self.writer = csv.DictWriter(self.fileobj, fieldnames=row.keys())
-            self.writer.writeheader()
+            self.writer = DictWriter.append(self.fileobj, fieldnames=row.keys(), writeheader=True)
         self.writer.writerow(row)
 
     def writerows(self, rows):
@@ -35,8 +37,7 @@ class CsvWriter:
             firstrow = next(rows)
             fieldnames = firstrow.keys()
 
-            self.writer = csv.DictWriter(self.fileobj, fieldnames=fieldnames)
-            self.writer.writeheader()
+            self.writer = DictWriter.append(self.fileobj, fieldnames=fieldnames, writeheader=True)
             self.writer.writerow(firstrow)
         self.writer.writerows(rows)
 
