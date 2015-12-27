@@ -1,39 +1,64 @@
 import csv
+import io
 import itertools
 
 
+class DictWriter(csv.DictWriter):
+    @classmethod
+    def append(cls, f, fieldnames=None, **kwargs):
+        curpos = f.tell()
+        if curpos > 0:
+            f.seek(0)
+            reader = csv.reader(f)
+            fieldnames = next(reader)
+            f.seek(curpos)
+        elif fieldnames is None:
+            raise ValueError("Can't append to an empty file.")
+        return cls(f, fieldnames, **kwargs)
+
+
 class CsvWriter:
-    def __init__(self, csv_file):
-        self.csv_file = csv_file
-        self.rows = iter(())
+    def __init__(self, fileobj):
+        self.fileobj = fileobj
+        self.writer = None
+        self.entered = False
 
-    def append_row(self, new_row):
-        self.append_rows([new_row])
+    def writerow(self, row):
+        if self.writer is None:
+            self.writer = csv.DictWriter(self.fileobj, fieldnames=row.keys())
+            self.writer.writeheader()
+        self.writer.writerow(row)
 
-    def append_rows(self, new_rows):
-        self.rows = itertools.chain(self.rows, new_rows)
+    def writerows(self, rows):
+        if self.writer is None:
+            rows = iter(rows)
+            firstrow = next(rows)
+            fieldnames = firstrow.keys()
+
+            self.writer = csv.DictWriter(self.fileobj, fieldnames=fieldnames)
+            self.writer.writeheader()
+            self.writer.writerow(firstrow)
+        self.writer.writerows(rows)
+
+    # backward compatibility
+    append_row = writerow
+    append_rows = writerows
 
     def __lshift__(self, new_rows):
         if isinstance(new_rows, dict):
-            self.append_row(new_rows)
+            self.writerow(new_rows)
         else:
-            self.append_rows(new_rows)
-
-    def flush(self):
-        firstrow = next(self.rows)
-        fieldnames = firstrow.keys()
-
-        file_obj = self.csv_file.open('w') if hasattr(self.csv_file, 'open') else self.csv_file
-        with file_obj as csv_f:
-            writer = csv.DictWriter(csv_f, fieldnames=fieldnames)
-            writer.writeheader()
-            writer.writerow(firstrow)
-            writer.writerows(self.rows)
+            self.writerows(new_rows)
 
     def __enter__(self):
+        self.entered = True
+        if hasattr(self.fileobj, 'open'):
+            # assume Path object, for backward compatibility
+            self.fileobj = self.fileobj.open('w')
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
+        if self.entered:
+            self.fileobj.close()
         if exc_type:
             return
-        self.flush()
